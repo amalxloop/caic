@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <action id="caic-compress-root">
+    <description>Compress the root file system for CAIC.</description>
+    <message>Enter the administrator password to compress the root file system for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/compress-root</annotate>
+  </action>
+  <action id="caic-copy-path">
+    <description>Copy a file or directory for CAIC.</description>
+    <message>Enter the administrator password to copy a file or directory for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/copy-path</annotate>
+  </action>
+  <action id="caic-current-directory">
+    <description>Get the virtual environment current directory for CAIC.</description>
+    <message>Enter the administrator password to get the virtual environment current directory for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/current-directory</annotate>
+  </action>
+  <action id="caic-delete">
+    <description>Delete a file or directory for CAIC.</description>
+    <message>Enter the administrator password to delete a file or directory for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/delete-path</annotate>
+  </action>
+  <action id="caic-directory-usage">
+    <description>Get directory usage (used, available, and used %) in bytes for CAIC.</description>
+    <message>Enter the administrator password to get directory usage (used, available, and used %) in bytes for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/directory-usage</annotate>
+  </action>
+  <action id="caic-extract-root">
+    <description>Extract the root file system for CAIC.</description>
+    <message>Enter the administrator password to extract the root file system for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/extract-root</annotate>
+  </action>
+  <action id="caic-file-size">
+    <description>Get the size of a file or directory in bytes for CAIC.</description>
+    <message>Enter the administrator password to get the size of a file or directory in bytes for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/file-size</annotate>
+  </action>
+  <action id="caic-merge-directory">
+    <description>Merge a source directory into a target directory for CAIC.</description>
+    <message>Enter the administrator password to merge a source directory into a target directory for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/merge-directory</annotate>
+  </action>
+  <action id="caic-mount-iso">
+    <description>Mount an ISO for CAIC.</description>
+    <message>Enter the administrator password to mount an ISO for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/mount-iso</annotate>
+  </action>
+  <action id="caic-move-path">
+    <description>Move a file or directory for CAIC.</description>
+    <message>Enter the administrator password to move a file or directory for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/move-path</annotate>
+  </action>
+  <action id="caic-replace-text">
+    <description>Replace text in a file for CAIC.</description>
+    <message>Enter the administrator password to replace text in a file for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/replace-text</annotate>
+  </action>
+  <action id="caic-start-console">
+    <description>Start the virtual environment for CAIC.</description>
+    <message>Enter the administrator password to start the virtual environment for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/start-console</annotate>
+  </action>
+  <action id="caic-stop-console">
+    <description>Stop the virtual environment for CAIC.</description>
+    <message>Enter the administrator password to stop the virtual environment for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/stop-console</annotate>
+  </action>
+  <action id="caic-stop-process">
+    <description>Terminate a process for CAIC.</description>
+    <message>Enter the administrator password to terminate a process for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/stop-process</annotate>
+  </action>
+  <action id="caic-test-command">
+    <description>Run the test command for CAIC.</description>
+    <message>Enter the administrator password to run the test command for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/test-command</annotate>
+  </action>
+  <action id="caic-unmount-iso">
+    <description>Unmount an ISO for CAIC.</description>
+    <message>Enter the administrator password to unmount an ISO for CAIC.</message>
+    <icon_name>caic</icon_name>
+    <defaults>
+      <!-- auth_admin or yes -->
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/share/caic/commands/unmount-iso</annotate>
+  </action>
+</policyconfig>

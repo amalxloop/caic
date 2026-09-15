@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=CAIC
+Comment=Custom Arch ISO Creator
+Path=/usr/share/caic
+Exec=/usr/bin/caic
+Terminal=false
+Type=Application
+Icon=caic
+StartupNotify=true
+Categories=Utility;Application;System;
+StartupWMClass=caic_wizard.py

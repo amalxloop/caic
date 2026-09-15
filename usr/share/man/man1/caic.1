@@ -1,0 +1,70 @@
+.\" Manual page for cubic.
+.\" Copyright (C) 2015, 2020, 2024 PJ Singh <psingh.cubic@gmail.com>
+
+.TH caic 1 "September 1, 2024" "" "CAIC"
+
+.SH NAME
+\fBcaic\fR - Custom Arch ISO Creator
+
+.SH SYNOPSIS
+\fBcaic\fR [-h] [-l] [-v] [-V] [directory] [iso]
+
+.SH DESCRIPTION
+CAIC (Custom Arch ISO Creator) is a GUI wizard to create a customized Live
+ISO image for Arch Linux and Arch-based distributions.
+.PP
+CAIC permits effortless navigation through the ISO customization steps and
+features an integrated virtual command line environment to customize the Linux
+file system. You can create new customization projects or modify existing
+projects. Important parameters are dynamically populated with intelligent
+defaults to simplify the customization process.
+.PP
+See <https://github.com/PJ-Singh-001/Cubic/wiki> for more information.
+
+.SH POSITIONAL ARGUMENTS
+
+\fBdirectory\fR
+.RS
+directory for a new or existing project
+.RE
+
+\fBiso\fR
+.RS
+original ISO file for a new project (ignored for existing projects)
+.RE
+
+.SH OPTIONS
+
+\fB-h, --help\fR
+.RS
+show the help message and exit
+.RE
+
+\fB-l, --log\fR
+.RS
+output a formatted log to a file in the project directory
+.RE
+
+\fB-v, --verbose\fR
+.RS
+output a formatted log to the console
+.RE
+
+\fB-V, --version\fR
+.RS
+print version information and exit
+.RE
+
+.SH NOTES
+CAIC is a graphical user interface application and should be started using the
+application launcher.
+.PP
+To run CAIC from the command line, use the \fBcaic\fR command; this executable
+is located in the /usr/bin directory and should be available in your path. Do
+not run caic using sudo or as root.
+
+.SH BUGS
+Report bugs to <https://github.com/PJ-Singh-001/Cubic/issues>.
+
+.SH AUTHOR
+PJ Singh <psingh.cubic@gmail.com>
