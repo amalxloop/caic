@@ -1,0 +1,156 @@
+#!/bin/bash
+
+########################################################################
+#                                                                      #
+# move-path                                                            #
+#                                                                      #
+# Copyright (C) 2020 PJ Singh <psingh.cubic@gmail.com>                 #
+#                                                                      #
+########################################################################
+
+########################################################################
+#                                                                      #
+# This file is part of Cubic - Custom Ubuntu ISO Creator.              #
+#                                                                      #
+# Cubic is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or    #
+# (at your option) any later version.                                  #
+#                                                                      #
+# Cubic is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of       #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the         #
+# GNU General Public License for more details.                         #
+#                                                                      #
+# You should have received a copy of the GNU General Public License    #
+# along with Cubic. If not, see <http://www.gnu.org/licenses/>.        #
+#                                                                      #
+########################################################################
+
+# Move a file or directory for Cubic.
+
+########################################################################
+# Constants
+########################################################################
+
+CUSTOM_DISK_DIRECTORY="custom-disk"
+CUSTOM_ROOT_DIRECTORY="custom-root"
+CUSTOM_LIVE_DIRECTORY="custom-live"
+BACKUP_ROOT_DIRECTORY="backup-root"
+BACKUP_LIVE_DIRECTORY="backup-live"
+
+########################################################################
+# Arguments
+########################################################################
+
+program=${0}
+number_arguments=${#}
+source_file_path=${1}
+target_file_path=${2}
+user=${3}
+
+echo "program..................... ${program}"
+echo "number of arguments......... ${number_arguments}"
+echo "source file path............ ${source_file_path}"
+echo "target file path............ ${target_file_path}"
+echo "user........................ ${user}"
+
+########################################################################
+# Command
+########################################################################
+
+# As a precaution, limit the paths that this command may be executed on.
+# Require the target path to contain the directory name as a path segment.
+if [[ "$target_file_path" != *"$CUSTOM_DISK_DIRECTORY"* && \
+      "$target_file_path" != *"$CUSTOM_ROOT_DIRECTORY"* && \
+      "$target_file_path" != *"$CUSTOM_LIVE_DIRECTORY"* && \
+      "$target_file_path" != *"$BACKUP_ROOT_DIRECTORY"* && \
+      "$target_file_path" != *"$BACKUP_LIVE_DIRECTORY"* ]]; then
+    if [[ -n "$user" ]]; then
+        echo "Error. Unable to move ${source_file_path} to ${target_file_path} for ${user}."
+    else
+        echo "Error. Unable to move ${source_file_path} to ${target_file_path}."
+    fi
+    exit 1
+fi
+
+# If the source file path is a directory that doesn't already end with
+# "/", add it.
+if [ -d "$source_file_path" ] && \
+   [ "${source_file_path%/}" != "$source_file_path" ]; then
+    # The source file path already ends with '/'.
+    :
+elif [ -d "$source_file_path" ]; then
+    # Append "/" to the source file path.
+    source_file_path="${source_file_path%/}/"
+fi
+
+# Ensure the target parent directories exist.
+directory_path="$(dirname -- "$target_file_path")"
+echo "Making directory path ${directory_path}."
+sudo mkdir --parents -- "$directory_path"
+
+if [ -d "$directory_path" ]; then
+    echo "• $directory_path does exist."
+else
+    echo "• $directory_path does NOT exist."
+fi
+
+# Run rsync, capture its exit code, and stop on rsync failure. The
+# "--remove-source-files" option does not remove empty directories in
+# the source file path. If a user was supplied, change ownership.
+# if [[ -n "$user" ]]; then
+#     sudo rsync            \
+#     --archive             \
+#     --inplace             \
+#     --remove-source-files \
+#     --info=progress2      \
+#     --chown="$user:$user" \
+#     --owner               \
+#     --group               \
+#     "${source_file_path}" "${target_file_path}"
+# else
+#     sudo rsync            \
+#     --archive             \
+#     --inplace             \
+#     --remove-source-files \
+#     --info=progress2      \
+#     "${source_file_path}" "${target_file_path}"
+# fi
+
+if [[ -n "$user" ]]; then
+    sudo rsync            \
+    --archive             \
+    --remove-source-files \
+    --info=progress2      \
+    --chown="$user:$user" \
+    --owner               \
+    --group               \
+    "${source_file_path}" "${target_file_path}"
+else
+    sudo rsync            \
+    --archive             \
+    --remove-source-files \
+    --info=progress2      \
+    "${source_file_path}" "${target_file_path}"
+fi
+
+
+# Use echo $? to check the error status.
+# http://www.tldp.org/LDP/abs/html/exitcodes.html
+exit_code=$?
+
+# If rsync failed, return its exit code (and don't run find and delete
+# on remaining empty directories in the source file path).
+if (( exit_code != 0 )); then
+    exit "$exit_code"
+fi
+
+# If the source file path contains remaining empty directories directory, delete remaining empty
+# directories. If this fails, return the exit code.
+# if [ -e "${source_file_path}" ]; then
+#     find "${source_file_path}" -type d -empty -delete
+# fi
+
+exit "$exit_code"
+

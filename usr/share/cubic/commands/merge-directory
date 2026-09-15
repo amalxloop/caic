@@ -1,0 +1,175 @@
+#!/bin/bash
+
+########################################################################
+#                                                                      #
+# merge-directory                                                      #
+#                                                                      #
+# Copyright (C) 2025 PJ Singh <psingh.cubic@gmail.com>                 #
+#                                                                      #
+########################################################################
+
+########################################################################
+#                                                                      #
+# This file is part of Cubic - Custom Ubuntu ISO Creator.              #
+#                                                                      #
+# Cubic is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or    #
+# (at your option) any later version.                                  #
+#                                                                      #
+# Cubic is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of       #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the         #
+# GNU General Public License for more details.                         #
+#                                                                      #
+# You should have received a copy of the GNU General Public License    #
+# along with Cubic. If not, see <http://www.gnu.org/licenses/>.        #
+#                                                                      #
+########################################################################
+
+# Merge a source directory into a target directory for Cubic.
+
+########################################################################
+# Arguments
+########################################################################
+
+program=${0}
+number_arguments=${#}
+source_directory=${1}
+target_directory=${2}
+
+# echo "program..................... ${program}"
+# echo "number of arguments......... ${number_arguments}"
+# echo "source directory............ ${source_directory}"
+# echo "target directory............ ${target_directory}"
+
+########################################################################
+# Command
+########################################################################
+
+# Perform the following steps to merge directories.
+# 1. Remove deleted files from the target directory.
+# 2. Merge source files and directories into the target directory.
+# 3. Check if the merge was successful.
+
+#
+# 1. Remove deleted files from the target directory.
+#
+
+# Find all character files in the source directory that have both device
+# id and file type equal to 0, indicating that these files have been
+# removed from the upper overlay file system.
+# • device id = 0 - the file does not represent a physical device
+# • device type = 0 - the file is not a valid character device
+# For each character found file, delete the corresponding regular file
+# from the target directory and then delete the character file from the
+# source directory.
+# See bug https://github.com/PJ-Singh-001/Cubic/issues/417.
+find "${source_directory}" -type c -exec bash -c '
+    source_prefix="$1"  # Set source directory to $source_directory
+    target_prefix="$2"  # Set target directory to $target_directory
+    output=$(stat -c "%t %T" "$3")  # Get the device id and device type
+    if [[ "$output" == "0 0" ]]; then  # Check if the file is unlinked (inactive)
+        source_path="${3}";  # Current file path
+        target_path="$target_prefix/${3#"$source_prefix/"}";  # Corresponding target path
+        rm -rf "${source_path}";  # Delete the source character file
+        rm -rf "${target_path}";  # Delete the corresponding target file
+    fi
+' _ "$source_directory" "$target_directory" {} \;  # Execute the delete commands with directories for each found character file
+
+# Notes:
+#
+# Execute the following command to manually identify any character files
+# remaining in the source directory that have both device id and file
+# type equal to 0, indicating that these files have been removed from
+# the file system. The source directory is typically
+# <cubic project directory>/custom-temp.
+# $ sudo find "${source_directory}" -type c -exec bash -c 'output=$(sudo stat -c "%t %T" "$1"); if [[ "$output" == "0 0" ]]; then echo "$1"; fi' _ {} \;
+#
+# Execute the following command to manually identify any character files
+# remaining in the target directory that have both device id and file
+# type equal to 0, indicating that these files have been removed from
+# the file system. The target directory is typically
+# <cubic project directory>/custom-root.
+# $ sudo find "${target_directory}" -type c -exec bash -c 'output=$(sudo stat -c "%t %T" "$1"); if [[ "$output" == "0 0" ]]; then echo "$1"; fi' _ {} \;
+
+#
+# 2. Merge source files and directories into the target directory.
+#
+
+# Move the remaining contents from the source directory to the target
+# directory, overwriting any existing files in the target, including
+# devices and special files. Files that are moved will be removed from
+# the source directory after transfer.
+#
+# Use the following rsync options to preserve the the corresponding
+# file attributes.
+# • -rlptgoD
+# • --recursive --links --perms --times --group --owner --devices
+#   --specials
+# ┌───────┬──────────────┬─────────────────────────────────────────┐
+# │ Short │ Long         │ Description                             │
+# ├───────┼──────────────┼─────────────────────────────────────────┤
+# │ -r    │ --recursive  │ Recurse into directories                │
+# │ -l    │ --links      │ Copy symlinks as symlinks               │
+# │ -p    │ --perms      │ Preserve permissions                    │
+# │ -t    │ --times      │ Preserve modification times             │
+# │ -g    │ --group      │ Preserve group                          │
+# │ -o    │ --owner      │ Preserve owner (super-user only)        │
+# │ -D    │              │ Same as --devices --specials            │
+# │       │ --devices    │ Preserve device files (super-user only) │
+# │       │ --specials   │ Preserve special files                  │
+# └───────┴──────────────┴─────────────────────────────────────────┘
+#
+# The -a or --archive option to the rsync command does not apply the
+# following short or long options, so the corresponding attributes are
+# not preserved.
+# • -A, -X, -U, -N, -H
+# • --acls, --xattrs, --crtimes, --atimes, --hard-links
+# ┌───────┬──────────────┬─────────────────────────────────────────┐
+# │ Short │ Long         │ Description                             │
+# ├───────┼──────────────┼─────────────────────────────────────────┤
+# │ -A    │ --acls       │ Preserve ACLs (implies --perms)         │
+# │ -X    │ --xattrs     │ Preserve extended attributes            │
+# │ -U    │ --atimes     │ Preserve access (use) times             │
+# │ -N    │ --crtimes    │ Preserve create times (newness)         │
+# │ -H    │ --hard-links │ Preserve hard links                     │
+# └───────┴──────────────┴─────────────────────────────────────────┘
+
+rsync --archive --inplace --remove-source-files --info=progress2 "${source_directory}/" "${target_directory}"
+
+# Notes:
+#
+# Execute the following command to manually identify if there are any
+# non-directory files remaining in the source directory. The source
+# directory is typically <cubic project directory>/custom-temp.
+# $ sudo find "${source_directory}" -not -type d -print
+
+# Delete all empty directories in the source directory. If the rsync
+# command completed successfully, the source directory will only contain
+# empty directories and will be deleted.
+find "${source_directory}" -type d -empty -delete
+
+# Flush all pending file system writes.
+sync
+
+#
+# 3. Check if the merge was successful.
+#
+
+# If the target directory contains character files with both device id
+# and device type equal to 0, the merge was unsuccessful.
+find "${target_directory}" -type c -exec bash -c '
+    output=$(stat -c "%t %T" "$1");  # Get the device id and device type
+    if [[ "$output" == "0 0" ]]; then  # Check if the file is unlinked (inactive)
+        echo "Error. Found character file with device id 0 and device type 0: $1";
+        exit 1;  # Exit with an error code
+    fi
+' _ {} \;  # Execute the command for each found character file
+
+# If the source directory still exists, the merge was unsuccessful.
+if [ -d "${source_directory}" ]; then
+    echo "Error. The directory ${source_directory} is not empty."
+    exit 1  # Exit with an error code
+fi
+
