@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.pkg.tar.*
+src/
+pkg/
+*~
+*.swp

@@ -212,9 +212,6 @@ def get_iso_release_name(iso_mount_point):
     logger.log_label('Get ISO image release name')
     logger.log_value('ISO image mount point', iso_mount_point)
 
-    # Read the original ISO image README.diskdefines file.
-    # file_path = os.path.join(iso_mount_point, 'README.diskdefines')
-
     # Read the original ISO image .disk/info file.
     file_path = os.path.join(iso_mount_point, '.disk', 'info')
 
@@ -223,9 +220,17 @@ def get_iso_release_name(iso_mount_point):
     if matches:
         iso_release_name = matches[0]
         logger.log_value('ISO image release name', iso_release_name)
-    else:
-        logger.log_value('ISO image release name', 'Not found')
+        return iso_release_name
 
+    # CAIC: Arch ISOs do not have a .disk/info file. Detect Arch by
+    # the presence of archiso artifacts and provide a generic name.
+    arch_indicator = os.path.join(iso_mount_point, 'arch', 'x86_64', 'airootfs.sfs')
+    if os.path.exists(arch_indicator):
+        iso_release_name = 'Arch Linux'
+        logger.log_value('ISO image release name', iso_release_name)
+        return iso_release_name
+
+    logger.log_value('ISO image release name', 'Not found')
     return iso_release_name
 
 
@@ -242,9 +247,17 @@ def get_iso_disk_name(iso_mount_point):
     if matches:
         iso_disk_name = matches[0]
         logger.log_value('ISO image disk name', iso_disk_name)
-    else:
-        logger.log_value('ISO image disk name', 'Not found')
+        return iso_disk_name
 
+    # CAIC: Arch ISOs do not have a README.diskdefines file. Detect
+    # Arch by the presence of archiso artifacts and provide a generic name.
+    arch_indicator = os.path.join(iso_mount_point, 'arch', 'x86_64', 'airootfs.sfs')
+    if os.path.exists(arch_indicator):
+        iso_disk_name = 'Arch Linux'
+        logger.log_value('ISO image disk name', iso_disk_name)
+        return iso_disk_name
+
+    logger.log_value('ISO image disk name', 'Not found')
     return iso_disk_name
 
 

@@ -75,6 +75,21 @@ name = 'generate_page'
 ########################################################################
 
 
+def is_arch_layout():
+    """
+    Determine if the current layout is an Arch layout, based on whether
+    an Arch squashfs directory was identified (e.g. "arch" or
+    "arch/x86_64"). Arch layouts do not use the Ubuntu installer
+    metadata files (README.diskdefines, .disk/, filesystem.size).
+
+    Returns:
+    : bool
+        True if the current layout is an Arch layout, else False.
+    """
+
+    return bool(model.layout.squashfs_directory.startswith('arch'))
+
+
 def setup(action, old_page=None):
     """
     Prepare this page for display. This function is executed while the
@@ -540,10 +555,14 @@ def copy_kernel_files():
     target_file_path = os.path.join(target_directory, target_file_name)
     user = getpass.getuser()
 
-    # Delete existing initrd* files in the target directory. Do not
-    # remove a file if it matches the target file name, because it will
-    # be efficiently updated by rsync.
+    # Delete existing initrd* and initramfs* files in the target
+    # directory. Do not remove a file if it matches the target file
+    # name, because it will be efficiently updated by rsync.
+    # Ubuntu initramfs files are named "initrd*", while Arch Linux files
+    # are named "initramfs*".
     file_path_pattern = os.path.join(target_directory, 'initrd*')
+    file_utilities.delete_files_with_pattern(file_path_pattern, [target_file_path])
+    file_path_pattern = os.path.join(target_directory, 'initramfs*')
     file_utilities.delete_files_with_pattern(file_path_pattern, [target_file_path])
 
     # Copy the new initrd file.
@@ -975,6 +994,13 @@ def update_file_system_size():
 
     logger.log_label('Update the file system size')
 
+    if is_arch_layout():
+        # Arch ISO layouts do not carry Ubuntu file-system-size metadata
+        # (filesystem.size / filesystem.standard-remove, etc.), so there
+        # is nothing to update.
+        logger.log_value('Skip. Arch layout has no file system size metadata', 'Arch layout')
+        return False  # (No error)
+
     # The file system size files appear on various ISOs as follows:
     # • standard_size_file_name............ Desktop, Server
     # • minimal_size_file_name............. Desktop, Server
@@ -1166,6 +1192,15 @@ def update_file_system_size():
 
 
 def update_disk_and_installer_info():
+
+    if is_arch_layout():
+        # Arch ISO layouts do not use the Ubuntu installer metadata
+        # files (README.diskdefines, .disk/info). There is nothing to
+        # update. The install sources file is already a no-op for Arch
+        # because no install_sources_file_name is registered.
+        logger.log_label('Update disk and installer info')
+        logger.log_value('Skip. Arch layout has no disk installer metadata', 'Arch layout')
+        return False  # (No error)
 
     # Update the disk name.
 
@@ -1502,7 +1537,17 @@ def update_checksums():
     # Show % in progress by setting text to None.
     displayer.update_progress_bar_text('generate_page__update_checksums_progress_bar', None)
 
-    checksums_file_path = os.path.join(model.project.custom_disk_directory, 'md5sum.txt')
+    # Determine checksum file name and algorithm based on layout.
+    # Arch ISO disks use sha256sums.txt; Ubuntu uses md5sum.txt.
+    is_arch = is_arch_layout()
+    if is_arch:
+        checksums_file_name = 'sha256sums.txt'
+        hash_algorithm = 'sha256'
+    else:
+        checksums_file_name = 'md5sum.txt'
+        hash_algorithm = 'md5'
+
+    checksums_file_path = os.path.join(model.project.custom_disk_directory, checksums_file_name)
     start_path = model.project.custom_disk_directory
 
     #
@@ -1607,7 +1652,7 @@ def update_checksums():
                     'generate_page__update_checksums_progress_bar',
                     f'Calculating checksum for file {file_number:n} of {total_files:n}')
                 try:
-                    checksum, file_path = file_utilities.calculate_md5_hash(file_path, start_path)
+                    checksum, file_path = file_utilities.calculate_hash(file_path, algorithm=hash_algorithm, start_directory=start_path)
                     if checksum:
                         file.write(f'{line_separator}{checksum}  ./{file_path}')
                         line_separator = os.linesep

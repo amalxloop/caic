@@ -206,6 +206,8 @@ class BootTab(FilesTab):
         squashfs_directory = model.layout.squashfs_directory.split(os.path.sep)[0]
         casper_directory = model.layout.casper_directory
         has_subiquity = bool(model.layout.install_sources_file_name)
+        is_arch = bool(model.layout.squashfs_directory.startswith('arch'))
+        has_boot_parameter = not is_arch
         new_vmlinuz_file_name = model.kernel_details_list[model.selected_kernel_index]['new_vmlinuz_file_name']
         new_initrd_file_name = model.kernel_details_list[model.selected_kernel_index]['new_initrd_file_name']
 
@@ -224,7 +226,7 @@ class BootTab(FilesTab):
             if re.search(r'^\s*(?i:APPEND)\s+', line):
 
                 # initrd
-                match = re.search(r'(?i:INITRD)=(\S+(?i:INITRD)\S*)', line)
+                match = re.search(r'(?i:INITRD)=(\S+(?i:INITRD|INITRAMFS)\S*)', line)
                 if match:
                     self.delete_text(source_buffer, line_number, match.start(1), match.end(1))
                     update_count += 1
@@ -239,7 +241,7 @@ class BootTab(FilesTab):
 
                     # boot
                     match = re.search(r'(?i:BOOT)=(\S+)', line)
-                    if match:
+                    if match and has_boot_parameter:
                         self.delete_text(source_buffer, line_number, match.start(1), match.end(1))
                         update_count += 1
                         logger.log_value('%d. Removed the boot path on line' % update_count, line_number)
@@ -250,7 +252,7 @@ class BootTab(FilesTab):
                         logger.log_value('%d. Updated the boot path on line' % update_count, line_number)
                         # Get the current line because it has changed.
                         line = self.get_line_text(source_buffer, line_number)
-                    elif not has_subiquity:
+                    elif has_boot_parameter and not has_subiquity:
                         # If subiquity is not used and "boot=" is
                         # missing, add it.
                         text = f' boot={squashfs_directory}'
@@ -285,7 +287,7 @@ class BootTab(FilesTab):
 
                     # boot
                     match = re.search(r'(?i:BOOT)=(\S+)', line)
-                    if match:
+                    if match and has_boot_parameter:
                         self.delete_text(source_buffer, line_number, match.start(1), match.end(1))
                         update_count += 1
                         logger.log_value('%d. Removed the boot path on line' % update_count, line_number)
@@ -296,7 +298,7 @@ class BootTab(FilesTab):
                         logger.log_value('%d. Updated the boot path on line' % update_count, line_number)
                         # Get the current line because it has changed.
                         line = self.get_line_text(source_buffer, line_number)
-                    elif not has_subiquity and not re.search(r'^\s*(?i:APPEND)\s+', self.get_line_text(source_buffer, line_number + 1)):
+                    elif has_boot_parameter and not has_subiquity and not re.search(r'^\s*(?i:APPEND)\s+', self.get_line_text(source_buffer, line_number + 1)):
                         # If subiquity is not used and the next line
                         # does not start with "append" and "boot=" is
                         # missing from this line, add it.
@@ -338,7 +340,7 @@ class BootTab(FilesTab):
             elif re.search(r'^\s*(?i:INITRD)\s+', line):
 
                 # initrd
-                match = re.search(r'(?i:INITRD)\s+(\S+(?i:INITRD)\S*)', line)
+                match = re.search(r'(?i:INITRD)\s+(\S+(?i:INITRD|INITRAMFS)\S*)', line)
                 if match:
                     self.delete_text(source_buffer, line_number, match.start(1), match.end(1))
                     update_count += 1

@@ -442,12 +442,15 @@ def get_architecture():
     """
     Get the architecture of the host machine.
 
+    pacman names architectures after `uname -m` values (x86_64, aarch64,
+    i686, …).
+
     Returns:
     : str
         The architecture, or None if not available.
     """
 
-    command = 'dpkg --print-architecture'
+    command = 'uname -m'
     result, exit_status, signal_status = execute_synchronous(command)
 
     return result if exit_status == OK else None
@@ -461,11 +464,12 @@ def get_package_version(package_name, root_directory=os.path.sep):
     package_name : str
         The name of the package.
     root_directory : str
-        Optional root directory of "var/lib/dpkg" (the dpkg database).
-        The default value is "/", which will get the version of the
-        specified package installed on the host system. Use
+        Optional root directory of "var/lib/pacman" (the pacman
+        database). The default value is "/", which will get the version
+        of the specified package installed on the host system. Use
         model.project.custom_root_directory to get the version of the
-        specified package installed on the on the custom OS.
+        specified package installed on the custom OS. pacman -Q queries
+        the database at <root_directory>/var/lib/pacman/local.
 
     Returns:
     : str
@@ -473,15 +477,21 @@ def get_package_version(package_name, root_directory=os.path.sep):
         does not exist.
     """
 
-    # The --root option was added to dpkg-query in Ubuntu 22.04 (dpkg
-    # package 1.21.1ubuntu2.1 and higher). Older versions of dpkg-query
-    # only support the --admindir option (dpkg package 1.20.9ubuntu2.2
-    # and lower).
-    admin_directory = os.path.join(root_directory, 'var/lib/dpkg')
-    command = 'dpkg-query --admindir="%s" --show --showformat="${Version}\n" "%s"' % (admin_directory, package_name)
+    if root_directory == os.path.sep:
+        command = f'pacman -Q "{package_name}"'
+    else:
+        command = f'pacman --root "{root_directory}" -Q "{package_name}"'
     result, exit_status, signal_status = execute_synchronous(command)
 
-    return result if exit_status == OK else None
+    # pacman -Q prints lines of the form "<name> <version>". Ignore any
+    # warning lines (which may not contain a valid second field).
+    if result and exit_status == OK:
+        for line in result.splitlines():
+            fields = line.split()
+            if len(fields) >= 2 and fields[0] == package_name:
+                return fields[1]
+
+    return None
 
 
 '''
@@ -750,7 +760,7 @@ def get_installed_packages_list(root_directory=os.path.sep):
 
     Arguments:
     root_directory : str
-        The root directory of "var/lib/dpkg" (the dpkg database).
+        The root directory of "var/lib/pacman" (the pacman database).
 
     Returns:
     package_details_list : list
@@ -761,18 +771,19 @@ def get_installed_packages_list(root_directory=os.path.sep):
 
     package_details_list = []
 
-    # The --root option was added to dpkg-query in Ubuntu 22.04 (dpkg
-    # package 1.21.1ubuntu2.1 and higher). Older versions of dpkg-query
-    # only support the --admindir option (dpkg package 1.20.9ubuntu2.2
-    # and lower).
-    admin_directory = os.path.join(root_directory, 'var/lib/dpkg')
-    command = 'dpkg-query --admindir="%s" --show' % (admin_directory)
+    if root_directory == os.path.sep:
+        command = 'pacman -Q'
+    else:
+        command = f'pacman --root "{root_directory}" -Q'
     result, exit_status, signal_status = execute_synchronous(command)
 
-    if result:
+    if result and exit_status == OK:
         packages = result.splitlines()
         for package in packages:
-            package_name, package_version = package.split()
+            fields = package.split()
+            if len(fields) < 2:
+                continue
+            package_name, package_version = fields[0], fields[1]
 
             # Create a new package details for the current package.
             # 1: package name

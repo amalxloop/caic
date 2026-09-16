@@ -1,0 +1,38 @@
+Per-file copyright and license notices for the source tree.
+
+This file supersedes the removed `debian/copyright` file (Debian packaging)
+and preserves the upstream per-file attribution of the Cubic codebase that
+CAIC is forked from.
+
+Files: usr/bin/*
+Copyright: 2015, 2020 PJ Singh
+License: GPL-3.0-or-later
+
+Files: usr/share/applications/*
+Copyright: 2015, 2020 PJ Singh
+License: GPL-3.0-or-later
+
+Files: usr/share/bash-completion/cubic
+Copyright: 2022 PJ Singh
+License: Apache-2.0
+
+Files: usr/share/cubic/*
+Copyright: 2015, 2020 PJ Singh
+License: GPL-3.0-or-later
+
+Files: usr/share/man/*
+Copyright: 2015, 2020 PJ Singh
+License: GPL-3.0-or-later
+
+Files: usr/share/polkit-1/*
+Copyright: 2015, 2020 PJ Singh
+License: GPL-3.0-or-later
+
+Files: usr/share/icons/*
+Copyright: 2015, 2020 PJ Singh
+License: CC BY-NC-SA 4.0
+
+The full text of the GNU General Public License v3 is in the LICENSE file.
+See https://creativecommons.org/licenses/by-nc-sa/4.0/ for the text of the
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+license, which applies to the icon artwork.

@@ -27,7 +27,7 @@ and the current state of each item.
   GPL v3 code under GPL v2; GPL v3 and GPL v2 are incompatible.
 - All original copyright notices and GPL headers in the source files are
   preserved. Some auxiliary assets retain their upstream licenses (see
-  `debian/copyright` for the full upstream per-file list).
+  `COPYRIGHT` for the full upstream per-file list).
 
 ## Architecture overview
 
@@ -61,8 +61,9 @@ python3 -m compileall -q usr/share/caic
 
 ## Packaging for Arch
 
-A `PKGBUILD` is provided (see [PKGBUILD](PKGBUILD)) and is expected to build
-via `makepkg` once the port reaches a runnable state.
+A `PKGBUILD` is provided (see [PKGBUILD](PKGBUILD)). Run `makepkg`
+from the repository root to build the `caic` package directly from the
+checkout (see the BUILD NOTE at the top of the PKGBUILD).
 
 ## Acknowledgements
 

@@ -79,6 +79,21 @@ is_page_valid = False
 ########################################################################
 
 
+def is_arch_layout():
+    """
+    Determine if the current layout is an Arch layout, based on whether
+    an Arch squashfs directory was identified (e.g. "arch" or
+    "arch/x86_64"). Arch layouts do not use the Ubuntu installer
+    metadata files (filesystem.size, filesystem.manifest).
+
+    Returns:
+    : bool
+        True if the current layout is an Arch layout, else False.
+    """
+
+    return bool(model.layout.squashfs_directory.startswith('arch'))
+
+
 def setup(action, old_page=None):
     """
     Prepare this page for display. This function is executed while the
@@ -1046,15 +1061,19 @@ def analyze_iso_layout(source_directory_path):
     model.layout.additional_exclude_path = 'md5sum.txt', True
     model.layout.additional_exclude_path = 'MD5SUMS', True
     model.layout.additional_exclude_path = '.disk/release_notes_url', True
+    # Arch ISO disks use sha256sums.txt instead of md5sum.txt.
+    model.layout.additional_exclude_path = 'sha256sums.txt', True
 
     # Exclude all *.gpg files in the squashfs directory.
     model.layout.additional_exclude_path = f'{model.layout.squashfs_directory}/*.gpg', True
 
     # Set important files that may not exist on the original ISO.
-    if not model.layout.size_file_name:
-        model.layout.size_file_name = 'filesystem.size', True
-    if not model.layout.manifest_file_name:
-        model.layout.manifest_file_name = 'filesystem.manifest', True
+    # Arch layouts do not use filesystem.size or filesystem.manifest.
+    if not is_arch_layout():
+        if not model.layout.size_file_name:
+            model.layout.size_file_name = 'filesystem.size', True
+        if not model.layout.manifest_file_name:
+            model.layout.manifest_file_name = 'filesystem.manifest', True
 
     # print('-' * 80)
     # model.layout.print()

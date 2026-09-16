@@ -2665,6 +2665,12 @@ def save_iso_release_notes_url():
 
     logger.log_label('Update the custom ISO release notes url')
 
+    # Arch ISO layouts do not use the Ubuntu .disk/ release metadata
+    # files.
+    if model.layout.squashfs_directory.startswith('arch'):
+        logger.log_value('Skip. Arch layout has no release notes url file', 'Arch layout')
+        return
+
     logger.log_value('The custom ISO release notes URL is', model.custom.iso_release_notes_url)
 
     file_path = os.path.join(model.project.custom_disk_directory, '.disk', 'release_notes_url')

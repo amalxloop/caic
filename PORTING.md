@@ -143,39 +143,107 @@ live root the chroot MUST also include:
   otherwise.
 
 ### 9. Packages page — `pages/packages_page.py`, `pages/snaps_page.py`
-**Status: not ported.**
+**Status: done. Arch layout support added.**
 
-- Packages page: list packages from `pacman -Sl` (available) and `pacman -Q`
-  (installed inside rootfs); size via `pacman -Si`.
-- Snaps page: Ubuntu-only. **Replace** with a page for pacman repo/mirror
-  management (or remove). Recommended: "Repositories & Keyring" page.
+- Packages page: on `setup('next')`, the Arch layout branch hides the
+  minimal-install column and switch, clears and shows the pacman install entry
+  (`packages_page__arch_install_box`), and updates the intro/subtitle labels.
+- Two signal handlers (`on_activate__packages_page__install_entry`,
+  `on_clicked__packages_page__install_button`) call `install_packages()` which
+  runs `pkexec pacman-in-root <root> --sync --noconfirm --needed <pkgs>` and
+  refreshes the list store via `prepare_page.create_package_details_list()`.
+- On `leave('next')`, the Arch branch calls `remove_selected_packages()` which
+  runs `pkexec pacman-in-root <root> --remove --recursive --nosave --noconfirm
+  <pkgs>`; returns 'error' on failure (stays on page with message).
+- `pacman-in-root` command: runs `systemd-nspawn --register=no --bind-ro
+  /etc/resolv.conf --directory <root> -- /usr/bin/pacman "$@"`.
+- `prepare_page.enter()`: the `is_arch_layout()` helper returns True when
+  `layout.squashfs_directory.startswith('arch')`; this is used to show the
+  packages page (Arch has no manifest file names) and to set
+  `has_minimal_install = False`.
+- `prepare_page.save_file_system_manifest_file()`: skipped without error when
+  both manifest file names are empty (Arch case).
+- Snaps page: left unchanged — never triggered on Arch since detection is
+  file-based (`/var/lib/snapd/state.json` or `/seed.yaml`) and absent from the
+  extracted rootfs.
 
 ### 10. Options page — `pages/kernel_tab.py`, `pages/preseed_tab.py`, `pages/boot_tab.py`, `pages/options_page.py`
-**Status: not ported.**
+**Status: done. Arch layout support added.**
 
-- Kernel tab: instead of installing Ubuntu kernel .debs, select which Arch
-  kernel (linux / linux-lts / linux-zen / linux-hardened) and regenerate the
-  initramfs with `mkinitcpio` using the rootfs' `/usr/lib/modules`, then write
-  `arch/boot/x86_64/vmlinuz-*` + `initramfs-*.img`. `lsinitcpio` replaces
-  `lsinitramfs` for inspecting the initramfs.
-- Preseed tab: **remove** — debconf preseed has no Arch equivalent.
-- Boot tab: edit kernel cmdline in `isolinux/syslinux.cfg`, grub entries and
-  `loader/entries/*.conf`; add `archiso` options (`copytoram`, `verify`,
-  `archisobasedir`, etc. live here).
+- Kernel tab: data-driven from `model.kernel_details_list` (populated by
+  `prepare_page.create_boot_kernel_details_list()`). For Arch, the original
+  kernel file names are preserved (`vmlinuz-linux`, `initramfs-linux.img`, …)
+  instead of renaming to Ubuntu's canonical `vmlinuz`/`initrd.<ext>`:
+  `calculate_vmlinuz_file_name()` / `calculate_initrd_file_name()` return the
+  source basename for Arch layouts.
+- Preseed tab: skipped and hidden on Arch (debconf preseed has no Arch
+  equivalent). `setup_preseed_tab()` is not scheduled, the Preseed stack page
+  (`options_page__preseed_tab__grid`) is hidden (which also removes it from the
+  stack switcher), and all `preseed_tab.remove_tree()` calls in `leave()` are
+  guarded with `if preseed_tab:`.
+- Boot tab: Arch-specific roots added to the scanned tree (`syslinux`,
+  `arch/boot/syslinux`, `loader` for systemd-boot entries). The auto-detect
+  `find`/`grep` command for Arch scans `vmlinuz|initramfs|initrd` instead of the
+  casper-oriented `linux.*vmlinuz|kernel.*vmlinuz`. The initrd path regexes now
+  also match `initramfs` names. The `boot=<squashfs-dir[0]>` rewrite and
+  insertion is disabled on Arch (archiso uses `archisobasedir=arch`, not
+  `boot=...`). systemd-boot `linux`/`initrd` and syslinux `LINUX`/`INITRD`
+  lines are handled by the existing LINUX/INITRD branches in `edit_source_view`.
+- `validate_page()`: for Arch, the Back button targets the Packages page
+  (`back` action) since Arch shows the Packages page with pacman operations.
 
 ### 11. Generate / Finish pages — `pages/generate_page.py`, `pages/finish_page.py`
-**Status: not ported.**
+**Status: done. Arch metadata skipping added.**
 
-Copy the extracted + re-squashed root into a working ISO tree laid out like
-the Arch layout above, then invoke `xorriso` with the same template trick
-(report as_mkisofs), substituting Arch paths. Keep El Torito + UEFI + MBR
-handling. Volume label should be archiso-style (`ARCH_YYYYMM`).
+- `update_disk_and_installer_info()`: for Arch layouts, short-circuits without
+  writing `README.diskdefines` or `.disk/info` (Ubuntu release-metadata
+  artifacts that Arch ISOs do not carry). The install-sources update was
+  already a no-op (no `install_sources_file_name` for Arch).
+- `save_iso_release_notes_url()` (project_page): skipped for Arch (avoids
+  creating a stray `.disk/` directory).
+- `filesystem.size`/`filesystem.manifest` defaults in
+  `extract_page.analyze_iso_layout()`: not applied for Arch, so no stray
+  `arch/x86_64/filesystem.size` is generated or checksummed.
+- Checksum generation already switches `md5sum.txt`↔`sha256sums.txt` for Arch
+  (now using the shared `is_arch_layout()` helper).
+- ISO creation (`xorriso -as mkisofs ...` from the El Torito report template)
+  is distro-agnostic and needs no Arch guard. No `genisoimage`/`grub-mkrescue`
+  usage exists.
+- `finish_page.validate_test_header_bar_button()`: the dummy Qemu package guard
+  (Ubuntu `0.0`) naturally never matches on Arch hosts since
+  `constructor.get_package_version()` uses `pacman -Q`.
 
 ### 12. Emulator page — `utilities/emulator.py`
 **Status: reusable.**
 
 QEMU invocation is distro-agnostic. Dependency changes only: `qemu-system-x86`
 → `qemu-full` (or `qemu-system-x86`), plus `edk2-ovmf` for UEFI boot testing.
+`finish_page` probes the GUI package as `qemu-ui-gtk` (Arch) instead of
+`qemu-system-gui` (Ubuntu); `get_package_version()` uses `pacman -Q`.
+
+### 12b. Packaging — `PKGBUILD` (was `debian/`)
+**Status: done. `debian/` removed; Arch PKGBUILD scaffold added.**
+
+- `debian/` (Debian packaging) is removed; the per-file copyright/license
+  table moved to a top-level `COPYRIGHT` file (icons are CC BY-NC-SA, the
+  bash-completion is Apache-2.0, the rest GPL-3).
+- `PKGBUILD` builds directly from the checkout (`source=()` + `$startdir`),
+  because the fork is not yet published; see the BUILD NOTE in the file for
+  how to switch to a `git+https://` source for AUR.
+- PYTHONPATH: no hack needed. `/usr/bin/caic` is a symlink to
+  `/usr/share/caic/caic_wizard.py`, and Python resolves the real script path,
+  so `sys.path[0]` = `/usr/share/caic` — the parent of the `caic` package.
+- Deps verified against the actual imports/binaries: `gtk3`,
+  `python-gobject`, `gtksourceview4`, `vte3`, `python-argcomplete`,
+  `python-pyicu`, `python-magic`, `python-packaging`, `python-pexpect`,
+  `python-psutil`, `python-pydbus`, `python-pyinotify`, `python-yaml`,
+  `coreutils`, `findutils`, `libisoburn`, `mkinitcpio`, `pacman`, `polkit`,
+  `rsync`, `sed`, `squashfs-tools`, `syslinux`, `systemd`, `util-linux`.
+  `arch-install-scripts` is not a dependency (console + package ops use
+  `systemd-nspawn`, not `arch-chroot`). `python-apt`/`apt_pkg` appears only
+  inside a commented-out docstring block and is not imported.
+- `binwalk` remains optional (compress-root detection falls back to other
+  methods when it is absent).
 
 ### 13. Helpers / commands
 **Status: mostly reusable; `replace-text`, `copy-path`, `delete-path`,
@@ -193,6 +261,57 @@ No change.
 - `genisoimage` (mkisofs) → `xorriso` (libisoburn) only.
 - `isolinux` → `syslinux` (`isolinux.bin`, `memdisk`).
 
+### 16. `build-iso.py` — headless ISO builder
+**Status: done. Two modes implemented; pure-python pipeline testable with
+`--dry-run`.**
+
+A self-contained CLI (stdlib only; no `gi`/`pexpect` dependency) that
+builds an ISO from a completed CAIC project. Supports two modes:
+
+**Default mode (xorriso template rebuild):**
+1. Loads `caic.conf` via `configparser` (stdlib) and decodes the
+   persisted xorriso template (`Status/iso_template`) with
+   `zlib.decompress(bytes.fromhex(...))`.
+2. Optionally copies Arch kernel files (`--skip-kernels` suppresses)
+   by globbing `custom-root/boot/vmlinuz-*` and `initramfs-*.img`
+   into the casper directory on the custom disk.
+3. Re-squashes the customized root (`mksquashfs`) via the project's
+   `commands/compress-root` wrapper (runs through `pkexec` when not
+   root, exactly matching the GUI).
+4. Writes `sha256sums.txt` (Arch) or `md5sum.txt` (Ubuntu) using
+   `hashlib`; excludes the eltorito boot image (`-b`/`-c`) and
+   optional minimal-remove / install-sources backup files.
+5. Creates symlinks for multi-valued layout attributes (links for
+   attribute aliases: e.g. `arch` → `arch/x86_64`).
+6. Runs `xorriso -as mkisofs ...` in `custom-disk/`, building the
+   command from the template with `volume_id` and
+   `boot_image_directory` placeholders.
+7. Calculates the md5 ISO checksum and writes `<iso>.md5` next to
+   the ISO.
+
+All steps skip automatically for Arch layout: `filesystem.size`,
+disk/installer metadata, and `.disk` attributes.
+
+**`--mkarchiso` mode (delegates to archiso's builder):**
+1. Generates a minimal archiso profile under the project's
+   `custom-temp/mkarchiso/profile/`: `profiledef.sh` (derived from
+   the project's ISO name/version), `packages.x86_64` (best-effort
+   package list from the custom root's pacman local database, or
+   `base`), and a `pacman.conf` with the standard mirrors.
+2. Overlays the customized root onto `profile/airootfs/` so that
+   mkarchiso packages the customized environment rather than
+   bootstrapping a fresh one.
+3. Invokes `mkarchiso -v -w <work> -o <output> <profile>`.
+4. `--dry-run` prints the generated profile and mkarchiso command
+   without executing anything, and does not require mkarchiso or
+   root privileges.
+5. When mkarchiso is not installed, exits with a clear instruction
+   to install the `archiso` package from the extra repository.
+
+**Testing:** `compileall` + dry-run against a synthetic project
+verifies all paths, config parsing, template decode, checksums
+generation, and xorriso command construction.
+
 ## Dependency map (debian/control → PKGBUILD)
 
 | Cubic (Debian)                | CAIC (Arch)                   | Notes                          |
@@ -203,7 +322,7 @@ No change.
 | gir1.2-vte-2.91               | vte3                          |                                |
 | python3-argcomplete           | python-argcomplete            |                                |
 | python3-icu                   | python-pyicu                  |                                |
-| python3-magic                 | python-python-magic           |                                |
+| python3-magic                 | python-magic                 |                                |
 | python3-packaging             | python-packaging              |                                |
 | python3-pexpect               | python-pexpect                |                                |
 | python3-psutil                | python-psutil                 |                                |
@@ -211,6 +330,7 @@ No change.
 | python3-pyinotify             | python-pyinotify              |                                |
 | python3-yaml                  | python-yaml                   |                                |
 | python3-apt **REMOVE**        | — (subprocess pacman / pyalpm)| Arch-specific rewrite          |
+| arch-install-scripts **REMOVE**| — (systemd-nspawn only)      | machinectl / systemd-nspawn    |
 | squashfs-tools                | squashfs-tools                |                                |
 | xorriso                       | libisoburn                    |                                |
 | genisoimage **REMOVE**        | —                             | xorriso only                   |

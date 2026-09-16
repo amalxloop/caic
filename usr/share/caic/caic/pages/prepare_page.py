@@ -70,6 +70,21 @@ INITRAMFS_VERSION_PATTERN = re.compile(r'lib/modules/(\d[\d\.-]*\d)')
 INITRAMFS_COMPRESSION_PATTERN = re.compile(r'(?i).*(gzip|bzip2|lz4|lzma|lzop|xz).*')
 COMPRESSION_EXTENSIONS = {'gzip': 'gz', 'bzip2': 'bz', 'lz4': 'lz', 'lzma': 'lz', 'lzop': 'lz', 'xz': 'xz'}
 
+
+def is_arch_layout():
+    """
+    Determine if the current layout is an Arch layout, based on whether
+    an Arch squashfs directory was identified (e.g. "arch" or
+    "arch/x86_64"). Arch layouts use pacman package operations instead
+    of the Ubuntu installer manifest file mechanism.
+
+    Returns:
+    : bool
+        True if the current layout is an Arch layout, else False.
+    """
+
+    return bool(model.layout.squashfs_directory.startswith('arch'))
+
 ########################################################################
 # Navigation Functions
 ########################################################################
@@ -290,9 +305,21 @@ def enter(action, old_page=None):
         # Determine if the Packages page should be skipped.
         # --------------------------------------------------------------
 
+        # Show the Packages page if the Ubuntu installer requires it
+        # (standard_remove_file_name) or if the layout is Arch (which
+        # uses pacman package operations instead of manifest files).
+        # Use a layout query, not a hard-coded "arch" string check.
         if model.layout.standard_remove_file_name:
-            # Show the Packages page.
+            # Show the Packages page (Ubuntu).
             logger.log_value('Show the Packages page?', 'Yes')
+            return 'next'
+        elif is_arch_layout():
+            # Show the Packages page (Arch).
+            logger.log_value('Show the Packages page?', 'Yes')
+            logger.log_value('Use pacman package operations?', 'Yes')
+            # Arch has no minimal install concept; the minimal install
+            # checkbox column and switch are hidden on the Packages page.
+            model.options.has_minimal_install = False
             return 'next'
         else:
             # Do not show the Packages page.
@@ -836,6 +863,12 @@ def update_vmlinuz_details_list(directory, details_list):
 
 def calculate_vmlinuz_file_name(file_path):
 
+    if is_arch_layout():
+        # Arch kernels retain their own names (e.g. "vmlinuz-linux",
+        # "vmlinuz-linux-lts") in the disk boot configurations; there is
+        # no renaming to a canonical "vmlinuz".
+        return os.path.basename(file_path)
+
     # Just use vmlinuz (instead of vmlinuz or vmlinuz.efi).
     file_name = 'vmlinuz'
 
@@ -978,6 +1011,9 @@ def update_initrd_details_list(directory, details_list):
 
     # Replace simlinks with the actual file_path.
     directory = os.path.realpath(directory)
+    # Arch initramfs files are typically named "initramfs-linux.img"
+    # (mkinitcpio); Ubuntu/Debian initramfs files are named
+    # "initrd.img-*" or "initrd-*" (initramfs-tools).
     file_path_pattern = os.path.join(directory, 'initrd*')
     for file_path in glob.glob(file_path_pattern):
         # Replace simlinks with the actual file_path.
@@ -1006,6 +1042,19 @@ def update_initrd_details_list(directory, details_list):
             file_path = os.path.abspath(os.path.join(model.project.custom_root_directory, real_path.strip(os.path.sep)))
 
             # Replace symbolic links with the actual file path.
+            real_path = os.path.realpath(file_path)
+
+        if os.path.exists(real_path):
+            file_paths.append(real_path)
+
+    # Arch Linux initramfs files use the "initramfs*" naming convention.
+    file_path_pattern = os.path.join(directory, 'initramfs*')
+    for file_path in glob.glob(file_path_pattern):
+        # Replace simlinks with the actual file_path.
+        real_path = os.path.realpath(file_path)
+        if not os.path.exists(real_path):
+            # See note above.
+            file_path = os.path.abspath(os.path.join(model.project.custom_root_directory, real_path.strip(os.path.sep)))
             real_path = os.path.realpath(file_path)
 
         if os.path.exists(real_path):
@@ -1044,6 +1093,12 @@ def update_initrd_details_list(directory, details_list):
 
 
 def calculate_initrd_file_name(file_path):
+
+    if is_arch_layout():
+        # Arch initramfs files retain their own names (e.g.
+        # "initramfs-linux.img", "initramfs-linux-lts.img"); there is no
+        # renaming to a canonical "initrd.<extension>".
+        return os.path.basename(file_path)
 
     # logger.log_value('Calculate initrd file name', file_path)
 
@@ -1252,7 +1307,8 @@ def _get_initrd_version_name_from_file_type(file_path):
 
 def _get_initrd_version_name_from_file_contents(file_path):
     """
-    Get the initrd version name from using the lsinitramfs command.
+    Get the initrd version name from using the lsinitramfs (Ubuntu) or
+    lsinitcpio (Arch) commands.
 
     Arguments:
     file_path : str
@@ -1267,7 +1323,10 @@ def _get_initrd_version_name_from_file_contents(file_path):
     logger.log_value('Get initrd version name from file contents', file_path)
     version_name = None
     try:
-        command = f'lsinitramfs "{file_path}"'
+        # Arch ISOs use initramfs-linux.img (mkinitcpio); the lsinitcpio
+        # command lists the contents, which include lib/modules/<version>.
+        # Fall back to lsinitramfs for Ubuntu/Debian initrd files.
+        command = f'lsinitcpio "{file_path}"'
         process = execute_asynchronous(command)
         process.expect(INITRAMFS_VERSION_PATTERN)
         # Close the process to obtain the exit status, if needed.
@@ -1278,6 +1337,16 @@ def _get_initrd_version_name_from_file_contents(file_path):
         # Close the process to obtain the exit status, if needed.
         process.close()
         logger.log_value('Encountered an exception while getting initrd version name from file contents', exception)
+        logger.log_value('Try using lsinitramfs', file_path)
+        try:
+            command = f'lsinitramfs "{file_path}"'
+            process = execute_asynchronous(command)
+            process.expect(INITRAMFS_VERSION_PATTERN)
+            process.close()
+            version_name = process.match.group(1)
+        except Exception as exception:
+            process.close()
+            logger.log_value('Encountered an exception while getting initrd version name from file contents', exception)
 
     logger.log_value('▹ The version name is', version_name)
 
@@ -1354,7 +1423,7 @@ def create_package_details_list(root_directory):
 
     Arguments:
     root_directory : str
-        The root directory of "var/lib/dpkg" (the dpkg database).
+        The root directory of "var/lib/pacman" (the pacman database).
 
     Returns:
     package_details_list : list
@@ -1365,19 +1434,23 @@ def create_package_details_list(root_directory):
 
     package_details_list = []
 
-    # The --root option was added to dpkg-query in Ubuntu 22.04 (dpkg
-    # package 1.21.1ubuntu2.1 and higher). Older versions of dpkg-query
-    # only support the --admindir option (dpkg package 1.20.9ubuntu2.2
-    # and lower).
-    # command = 'dpkg-query --root="%s" --show' % (root_directory)
-    admin_directory = os.path.join(root_directory, 'var/lib/dpkg')
-    command = 'dpkg-query --admindir="%s" --show' % (admin_directory)
+    # pacman -Q lists installed packages from the specified root's
+    # database. For the host system, the default root directory "/" is
+    # used. For the custom OS, model.project.custom_root_directory is
+    # used; pacman reads <root_directory>/var/lib/pacman/local.
+    if root_directory == os.path.sep:
+        command = 'pacman -Q'
+    else:
+        command = f'pacman --root "{root_directory}" -Q'
     result, exit_status, signal_status = execute_synchronous(command)
 
-    if result:
+    if result and exit_status == OK:
         packages = result.splitlines()
         for package in packages:
-            package_name, package_version = package.split()
+            fields = package.split()
+            if len(fields) < 2:
+                continue
+            package_name, package_version = fields[0], fields[1]
 
             # Create a new package details for the current package.
             # 0: is standard selected?
@@ -1575,6 +1648,13 @@ def save_file_system_manifest_file(package_details_list):
     #     or similar.
 
     logger.log_label('Create new file system manifest file')
+
+    # The file system manifest file is an Ubuntu/installer artifact.
+    # Arch layout does not define a manifest file name (both values are
+    # empty), so skip this without error for Arch.
+    if not model.layout.minimal_manifest_file_name and not model.layout.manifest_file_name:
+        logger.log_value('Skip. No file system manifest file name is defined', 'Arch layout')
+        return False  # (No Error)
 
     try:
         if model.layout.minimal_squashfs_file_name:

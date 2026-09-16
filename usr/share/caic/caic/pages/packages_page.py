@@ -39,12 +39,13 @@
 
 import os
 
-from caic.constants import BOLD_RED, NORMAL
+from caic.constants import BOLD_RED, NORMAL, OK
 from caic.utilities import displayer
 from caic.utilities import file_utilities
 from caic.utilities import iso_utilities
 from caic.utilities import logger
 from caic.utilities import model
+from caic.utilities.processor import execute_synchronous
 
 ########################################################################
 # Global Variables & Constants
@@ -56,6 +57,41 @@ undo_index = 0
 undo_list = None
 
 has_minimal_install = None
+
+
+def is_arch_layout():
+    """
+    Determine if the current layout is an Arch layout, based on whether
+    an Arch squashfs directory was identified (e.g. "arch" or
+    "arch/x86_64"). Arch layouts install and remove packages with
+    pacman instead of writing Ubuntu installer manifest files.
+
+    Returns:
+    : bool
+        True if the current layout is an Arch layout, else False.
+    """
+
+    return bool(model.layout.squashfs_directory.startswith('arch'))
+
+
+def create_package_details_list(root_directory):
+    """
+    Create a list of installed package details. This function delegates
+    to the identical function in prepare_page.py.
+
+    Arguments:
+    root_directory : str
+        The root directory of "var/lib/pacman" (the pacman database).
+
+    Returns:
+    package_details_list : list
+        A list of package details.
+    """
+
+    logger.log_label('Create list of installed packages')
+
+    from caic.pages.prepare_page import create_package_details_list as create_list
+    return create_list(root_directory)
 
 ########################################################################
 # Navigation Functions
@@ -99,6 +135,7 @@ def setup(action, old_page=None):
 
         displayer.set_visible('packages_page__header_bar_box_1', True)
         displayer.set_visible('packages_page__header_bar_box_2', True)
+        displayer.set_visible('packages_page__arch_install_box', False)
         displayer.set_visible('options_page__stack_switcher', False)
 
         return
@@ -130,22 +167,41 @@ def setup(action, old_page=None):
 
         # Show or hide the minimal install switch and column.
         global has_minimal_install
-        has_minimal_install = model.options.has_minimal_install
-        if has_minimal_install:
-            # Activate the the minimal install switch.
-            logger.log_value('Activate the minimal install switch?', 'Yes')
-            displayer.activate_switch('packages_page__minimal_install_header_bar_switch', True)
-            # Show the minimal install check box column.
-            logger.log_value('Show the minimal install column?', 'Yes')
-            displayer.set_column_visible('packages_page__remove_2_tree_view_column', True)
-        else:
-            # Deactivate the the minimal install switch.
-            logger.log_value('Activate the minimal install switch?', 'No')
+
+        if is_arch_layout():
+            # Arch layouts use pacman package operations instead of the
+            # Ubuntu installer manifest process. Hide the minimal install
+            # switch and column (private arch has no minimal install
+            # concept) and show the install packages entry.
+            has_minimal_install = False
+            logger.log_value('Use Arch layout package operations?', 'Yes')
             displayer.activate_switch('packages_page__minimal_install_header_bar_switch', False)
-            # Hide the minimal install check box column.
-            logger.log_value('Show the minimal install column?', 'No')
             displayer.set_column_visible('packages_page__remove_2_tree_view_column', False)
-        displayer.set_visible('packages_page__header_bar_box_2', True)
+            displayer.set_visible('packages_page__header_bar_box_2', False)
+            displayer.set_visible('packages_page__arch_install_box', True)
+            displayer.update_label('packages_page__intro_label', 'Select packages to be removed from the custom disk, or install new packages with pacman.')
+            displayer.update_label('packages_page__subtitle_label', 'Check marked packages will be <i>removed from</i> the custom disk image.')
+            displayer.update_entry('packages_page__install_entry', '')
+            displayer.update_label('packages_page__install_message_label', '', False)
+            displayer.set_sensitive('packages_page__install_button', True)
+        else:
+            has_minimal_install = model.options.has_minimal_install
+            displayer.set_visible('packages_page__arch_install_box', False)
+            if has_minimal_install:
+                # Activate the the minimal install switch.
+                logger.log_value('Activate the minimal install switch?', 'Yes')
+                displayer.activate_switch('packages_page__minimal_install_header_bar_switch', True)
+                # Show the minimal install check box column.
+                logger.log_value('Show the minimal install column?', 'Yes')
+                displayer.set_column_visible('packages_page__remove_2_tree_view_column', True)
+            else:
+                # Deactivate the the minimal install switch.
+                logger.log_value('Activate the minimal install switch?', 'No')
+                displayer.activate_switch('packages_page__minimal_install_header_bar_switch', False)
+                # Hide the minimal install check box column.
+                logger.log_value('Show the minimal install column?', 'No')
+                displayer.set_column_visible('packages_page__remove_2_tree_view_column', False)
+            displayer.set_visible('packages_page__header_bar_box_2', True)
 
         # Hide the stack switcher.
         displayer.set_visible('options_page__stack_switcher', False)
@@ -242,6 +298,23 @@ def leave(action, new_page=None):
 
         displayer.set_visible('packages_page__header_bar_box_1', False)
         displayer.set_visible('packages_page__header_bar_box_2', False)
+        displayer.set_visible('packages_page__arch_install_box', False)
+
+        if is_arch_layout():
+            # Arch layouts do not use the Ubuntu installer manifest
+            # process. Remove the checked packages with pacman instead.
+            logger.log_label('Remove selected packages with pacman')
+            is_error = remove_selected_packages()
+            if is_error:
+                displayer.update_label('packages_page__install_message_label', 'Error. Unable to remove the selected packages.', True)
+                displayer.set_visible('packages_page__arch_install_box', True)
+                displayer.reset_buttons(is_back_sensitive=True, is_next_sensitive=True)
+                return 'error'
+            # The minimal install concept does not apply to Arch.
+            model.options.has_minimal_install = False
+            # Save the model values.
+            model.project.configuration.save()
+            return
 
         # Create the removable packages list for a standard install.
         logger.log_label('Create the removable packages list for a standard install')
@@ -669,9 +742,106 @@ def on_toggled__packages_page__remove_2_check_button(widget, row):
     """
 
 
+def on_activate__packages_page__install_entry(widget):
+
+    install_packages()
+
+
+def on_clicked__packages_page__install_button(widget):
+
+    install_packages()
+
+
 ########################################################################
 # Support Functions
 ########################################################################
+
+
+def install_packages():
+
+    if not is_arch_layout():
+        logger.log_value('Install packages?', 'No. Not an Arch layout.')
+        return
+
+    displayer.set_sensitive('packages_page__install_button', False)
+
+    entry_name = 'packages_page__install_entry'
+    widget = model.builder.get_object(entry_name)
+    text = widget.get_text()
+    package_names = text.split()
+    if not package_names:
+        logger.log_value('Install packages?', 'No packages specified.')
+        displayer.update_label('packages_page__install_message_label', 'Enter the names of the packages to install.', True)
+        displayer.set_sensitive('packages_page__install_button', True)
+        return
+
+    package_list = ' '.join(package_names)
+    logger.log_label('Install packages with pacman')
+    logger.log_value('Packages to install', package_list)
+
+    displayer.update_label('packages_page__install_message_label', f'Installing {package_list} ... (requires authorization)')
+
+    program = os.path.join(model.application.directory, 'commands', 'pacman-in-root')
+    command = ['pkexec', program, model.project.custom_root_directory, '--sync', '--noconfirm', '--needed'] + package_names
+    result, exit_status, signal_status = execute_synchronous(command, model.project.custom_root_directory)
+
+    # Refresh the installed package list.
+    model.package_details_list = create_package_details_list(model.project.custom_root_directory)
+    displayer.update_list_store('packages_page__list_store', model.package_details_list)
+
+    if exit_status == OK:
+        message = f'Installed {package_list}.'
+        displayer.update_label('packages_page__install_message_label', message, False)
+    else:
+        message = f'Error. Unable to install {package_list}.'
+        displayer.update_label('packages_page__install_message_label', message, True)
+        logger.log_value('Error. The result is', result)
+
+    displayer.set_sensitive('packages_page__install_button', True)
+
+
+def remove_selected_packages():
+
+    logger.log_label('Remove selected packages with pacman')
+
+    list_store_name = 'packages_page__list_store'
+    logger.log_value('Get user selections from', list_store_name)
+    list_store = model.builder.get_object(list_store_name)
+    removable_packages_list = []
+    item = list_store.get_iter_first()
+    while item is not None:
+
+        # 0: is standard selected?
+        # 1: is minimal selected?
+        # 2: is minimal selected initial?
+        # 3: is minimal active?
+        # 4: package name
+        # 5: package version
+
+        flag = list_store.get_value(item, 0)
+        package_name = list_store.get_value(item, 4)
+        if flag:
+            removable_packages_list.append(package_name)
+        item = list_store.iter_next(item)
+
+    if not removable_packages_list:
+        logger.log_value('Remove packages?', 'No packages selected.')
+        return False  # (No Error)
+
+    package_list = ' '.join(removable_packages_list)
+    logger.log_value('Packages to remove', package_list)
+
+    program = os.path.join(model.application.directory, 'commands', 'pacman-in-root')
+    command = ['pkexec', program, model.project.custom_root_directory, '--remove', '--recursive', '--nosave', '--noconfirm'] + removable_packages_list
+    result, exit_status, signal_status = execute_synchronous(command, model.project.custom_root_directory)
+
+    if exit_status == OK:
+        logger.log_value('Removed packages', package_list)
+        return False  # (No Error)
+    else:
+        logger.log_value('Error. Unable to remove', package_list)
+        logger.log_value('Error. The result is', result)
+        return True  # (Error)
 
 
 def create_standard_removable_packages_list():

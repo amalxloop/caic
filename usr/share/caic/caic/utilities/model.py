@@ -258,6 +258,34 @@ layout.additional_exclude_path = '.disk/release_notes_url', False
 # set here and must be set on the Extract page.
 # model.layout.additional_exclude_path = f'{model.layout.squashfs_directory}/*.gpg', True
 
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+# Arch Linux layout (CAIC support)
+# Arch ISOs place kernel/initramfs under arch/boot/x86_64 (or arch/x86_64)
+# and the root squashfs at arch/x86_64/airootfs.sfs.
+# ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+
+# 1. Casper Section (Arch kernel directories)
+#    Order matters: last valid value wins, so place the preferred
+#    path last so it is selected when multiple candidates match.
+layout.casper_directory = 'arch/boot', False
+layout.casper_directory = 'arch/x86_64', False
+layout.casper_directory = 'arch/boot/x86_64', False
+
+# Arch kernel/initramfs file names
+layout.initrd_file_name = 'initramfs-linux.img', False
+layout.initrd_file_name = 'initramfs-linux-lts.img', False
+layout.initrd_file_name = 'initramfs.img', False
+
+layout.vmlinuz_file_name = 'vmlinuz-linux', False
+layout.vmlinuz_file_name = 'vmlinuz-linux-lts', False
+
+# 2. General Section (Arch squashfs locations)
+layout.squashfs_directory = 'arch', False
+layout.squashfs_directory = 'arch/x86_64', False
+
+layout.squashfs_file_name = 'airootfs.sfs', False
+layout.squashfs_file_name = 'rootfs.sfs', False
+
 ########################################################################
 # Status
 ########################################################################

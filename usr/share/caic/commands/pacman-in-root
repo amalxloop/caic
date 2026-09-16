@@ -1,0 +1,60 @@
+#!/bin/bash
+
+########################################################################
+#                                                                      #
+# pacman-in-root                                                       #
+#                                                                      #
+# Copyright (C) 2020 PJ Singh <psingh.cubic@gmail.com>                 #
+#                                                                      #
+########################################################################
+
+########################################################################
+#                                                                      #
+# This file is part of Cubic - Custom Ubuntu ISO Creator.              #
+#                                                                      #
+# Cubic is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or    #
+# (at your option) any later version.                                  #
+#                                                                      #
+# Cubic is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of       #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the         #
+# GNU General Public License for more details.                         #
+#                                                                      #
+# You should have received a copy of the GNU General Public License    #
+# along with Cubic. If not, see <http://www.gnu.org/licenses/>.        #
+#                                                                      #
+########################################################################
+
+# Run a pacman command inside the custom root filesystem. This is used
+# by the Packages page for Arch layouts, where packages are installed
+# and removed with pacman instead of the Ubuntu installer manifest
+# files. The package database is <root>/var/lib/pacman, and pacman runs
+# inside the extracted root so that package hooks are executed.
+
+########################################################################
+# References
+########################################################################
+
+# http://manpages.ubuntu.com/manpages/focal/man1/systemd-nspawn.1.html
+
+########################################################################
+# Arguments
+########################################################################
+
+directory=${1}
+shift
+
+########################################################################
+# Command
+########################################################################
+
+systemd-nspawn              \
+--quiet                     \
+--register=no               \
+--bind-ro="/etc/resolv.conf" \
+--directory="${directory}"  \
+-- /usr/bin/pacman "$@"
+exit_code=$?
+exit $exit_code

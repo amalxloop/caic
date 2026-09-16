@@ -237,7 +237,11 @@ def host_has_gtk_display_support():
     Check if the host supports gtk.
     """
 
-    has_support = bool(constructor.get_package_version('qemu-system-gui'))
+    # Ubuntu installs the GUI as qemu-system-gui; Arch Linux installs
+    # it as the qemu-ui-gtk package.
+    has_support = bool(
+        constructor.get_package_version('qemu-ui-gtk')
+        or constructor.get_package_version('qemu-system-gui'))
     logger.log_value('The host system supports GTK display?', has_support)
 
     return has_support

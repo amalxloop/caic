@@ -1122,6 +1122,68 @@ def replace_text_in_file_ALTERNATIVE(file_path, search_text, replacement_text):
         file.write(file_contents)
 
 
+def calculate_hash(file_path, algorithm='md5', start_directory=os.path.sep, buffer_size=2**20):
+    """
+    Calculate the hash by reading a file into a buffer. The default
+    buffer size is 2^20 bytes = 1048576 bytes = 1 MiB (Mebibytes).
+
+    Arguments:
+        file_path : str
+            The file to calculate the hash for. If start directory
+            is not specified or is "/", then file path must be a full
+            file path. Otherwise, file path must be relative to the
+            start directory.
+        algorithm : str
+            The hash algorithm to use, "md5" or "sha256". The default
+            is "md5".
+        start_directory : str
+            Optional start directory. The default is "/".
+        buffer_size : int
+            Optional buffer size in bytes. The default is 1048576 bytes.
+    Returns:
+        : str
+        The hash if the file exists and is not a link, else None.
+        : str
+        The file path without a "/" prefix.
+    Raises:
+    : Exception
+        The exception that occurred.
+    """
+
+    # It is necessary to strip the leading '/' from the file_path,
+    # otherwise os.path.join() considers the file path to be an absolute
+    # path and discards the start path prefix: "If a component is an
+    # absolute path, all previous components are thrown away and
+    # os.path.joining continues from the absolute path component."
+    # (See https://docs.python.org/3/library/os.path.html).
+    file_path = file_path.strip(os.path.sep)
+    full_file_path = os.path.abspath(os.path.join(start_directory, file_path))
+
+    # Do not calculate hash for links.
+    if os.path.islink(full_file_path):
+        logger.log_value('Do not calculate checksum for link', file_path)
+        return None, file_path
+
+    if algorithm == 'sha256':
+        hash_algorithm = hashlib.sha256()
+    else:
+        hash_algorithm = hashlib.md5()
+    try:
+        with open(full_file_path, 'rb') as file:
+            data = file.read(buffer_size)
+            while data:
+                hash_algorithm.update(data)
+                data = file.read(buffer_size)
+        digest = hash_algorithm.hexdigest()
+        # return f'{digest}  ./{file_path}'
+        return digest, file_path
+    except Exception as exception:
+        logger.log_value('Unable to calculate the hash for file', file_path)
+        logger.log_value('The exception is', exception)
+        logger.log_value('The trace back is', traceback.format_exc())
+        raise exception
+
+
 def calculate_md5_hash(file_path, start_directory=os.path.sep, buffer_size=2**20):
     """
     Calculate the md5 hash by reading a file into a buffer. The default
@@ -1147,35 +1209,35 @@ def calculate_md5_hash(file_path, start_directory=os.path.sep, buffer_size=2**20
         The exception that occurred.
     """
 
-    # It is necessary to strip the leading '/' from the file_path,
-    # otherwise os.path.join() considers the file path to be an absolute
-    # path and discards the start path prefix: "If a component is an
-    # absolute path, all previous components are thrown away and
-    # os.path.joining continues from the absolute path component."
-    # (See https://docs.python.org/3/library/os.path.html).
-    file_path = file_path.strip(os.path.sep)
-    full_file_path = os.path.abspath(os.path.join(start_directory, file_path))
+    return calculate_hash(file_path, algorithm='md5', start_directory=start_directory, buffer_size=buffer_size)
 
-    # Do not calculate md5 hash for links.
-    if os.path.islink(full_file_path):
-        logger.log_value('Do not calculate checksum for link', file_path)
-        return None, file_path
 
-    md5_algorithm = hashlib.md5()
-    try:
-        with open(full_file_path, 'rb') as file:
-            data = file.read(buffer_size)
-            while data:
-                md5_algorithm.update(data)
-                data = file.read(buffer_size)
-        digest = md5_algorithm.hexdigest()
-        # return f'{digest}  ./{file_path}'
-        return digest, file_path
-    except Exception as exception:
-        logger.log_value('Unable to calculate the md5 hash for file', file_path)
-        logger.log_value('The exception is', exception)
-        logger.log_value('The trace back is', traceback.format_exc())
-        raise exception
+def calculate_sha256_hash(file_path, start_directory=os.path.sep, buffer_size=2**20):
+    """
+    Calculate the sha256 hash by reading a file into a buffer. The
+    default buffer size is 2^20 bytes = 1048576 bytes = 1 MiB (Mebibytes).
+
+    Arguments:
+        file_path : str
+            The file to calculate the sha256 hash for. If start directory
+            is not specified or is "/", then file path must be a full
+            file path. Otherwise, file path must be relative to the
+            start directory.
+        start_directory : str
+            Optional start directory. The default is "/".
+        buffer_size : int
+            Optional buffer size in bytes. The default is 1048576 bytes.
+    Returns:
+        : str
+        The sha256 hash if the file exists and is not a link, else None.
+        : str
+        The file path without a "/" prefix.
+    Raises:
+    : Exception
+        The exception that occurred.
+    """
+
+    return calculate_hash(file_path, algorithm='sha256', start_directory=start_directory, buffer_size=buffer_size)
 
 
 def calculate_md5_hash_ALTERNATIVE(file_path, start_directory=None):

@@ -76,6 +76,22 @@ boot_tab = None
 ########################################################################
 
 
+def is_arch_layout():
+    """
+    Determine if the current layout is an Arch layout, based on whether
+    an Arch squashfs directory was identified (e.g. "arch" or
+    "arch/x86_64"). Arch layouts do not use the Ubuntu installer
+    manifest files, the Ubuntu preseed tab, or the Ubuntu install
+    sources.
+
+    Returns:
+    : bool
+        True if the current layout is an Arch layout, else False.
+    """
+
+    return bool(model.layout.squashfs_directory.startswith('arch'))
+
+
 def setup(action, old_page=None):
     """
     Prepare this page for display. This function is executed while the
@@ -136,7 +152,12 @@ def setup(action, old_page=None):
         GLib.idle_add(setup_kernel_tab)
 
         # Setup the Preseed tab.
-        GLib.idle_add(setup_preseed_tab)
+        if not is_arch_layout():
+            GLib.idle_add(setup_preseed_tab)
+        else:
+            # The Preseed tab is an Ubuntu installer (debconf) concept.
+            # Hide the Preseed page in the stack and the stack switcher.
+            displayer.set_visible('options_page__preseed_tab__grid', False)
 
         # Setup the Boot tab.
         GLib.idle_add(setup_boot_tab)
@@ -154,7 +175,12 @@ def setup(action, old_page=None):
         GLib.idle_add(setup_kernel_tab)
 
         # Setup the Preseed tab.
-        GLib.idle_add(setup_preseed_tab)
+        if not is_arch_layout():
+            GLib.idle_add(setup_preseed_tab)
+        else:
+            # The Preseed tab is an Ubuntu installer (debconf) concept.
+            # Hide the Preseed page in the stack and the stack switcher.
+            displayer.set_visible('options_page__preseed_tab__grid', False)
 
         # Setup the Boot tab.
         GLib.idle_add(setup_boot_tab)
@@ -258,7 +284,8 @@ def leave(action, new_page=None):
         # Update the model to acknowledge changes.
         model.options.boot_configurations = boot_tab.get_required_file_paths()
 
-        preseed_tab.remove_tree()
+        if preseed_tab:
+            preseed_tab.remove_tree()
         boot_tab.remove_tree()
 
         # Save the model values.
@@ -306,7 +333,8 @@ def leave(action, new_page=None):
         # Update the model to acknowledge changes.
         model.options.boot_configurations = boot_tab.get_required_file_paths()
 
-        preseed_tab.remove_tree()
+        if preseed_tab:
+            preseed_tab.remove_tree()
         boot_tab.remove_tree()
 
         # Save the model values.
@@ -340,7 +368,8 @@ def leave(action, new_page=None):
         # Update the model to acknowledge changes.
         model.options.boot_configurations = boot_tab.get_required_file_paths()
 
-        preseed_tab.remove_tree()
+        if preseed_tab:
+            preseed_tab.remove_tree()
         boot_tab.remove_tree()
 
         # Save the model values.
@@ -557,13 +586,33 @@ def setup_boot_tab():
     if os.path.isdir(file_path):
         root_file_paths.append('isolinux')
 
+    if is_arch_layout():
+        # The syslinux directory (BIOS) is optional.
+        file_path = os.path.join(model.project.custom_disk_directory, 'syslinux')
+        if os.path.isdir(file_path):
+            root_file_paths.append('syslinux')
+
+        # The arch/boot/syslinux directory (alternative BIOS location) is
+        # optional.
+        file_path = os.path.join(model.project.custom_disk_directory, 'arch', 'boot', 'syslinux')
+        if os.path.isdir(file_path):
+            root_file_paths.append('arch/boot/syslinux')
+
+        # The loader directory (systemd-boot) is optional.
+        file_path = os.path.join(model.project.custom_disk_directory, 'loader')
+        if os.path.isdir(file_path):
+            root_file_paths.append('loader')
+
     # Get the the boot configuration files. These are text files located
     # in the root file paths that contain the words vmlinuz and initrd.
     if not model.options.boot_configurations:
         # Use raw string ("r") to avoid syntax warninings. See GH:#340.
         # - SyntaxWarning: invalid escape sequence '\|'
         # - SyntaxWarning: invalid escape sequence '\;'
-        command = rf'find {" ".join(root_file_paths)} -type f -exec grep -HiIl "linux.*vmlinuz\|kernel.*vmlinuz" {{}} \;'
+        if is_arch_layout():
+            command = rf'find {" ".join(root_file_paths)} -type f -exec grep -HiIl "vmlinuz\|initramfs\|initrd" {{}} \;'
+        else:
+            command = rf'find {" ".join(root_file_paths)} -type f -exec grep -HiIl "linux.*vmlinuz\|kernel.*vmlinuz" {{}} \;'
         result, exit_status, signal_status = execute_synchronous(command, model.project.custom_disk_directory)
         model.options.boot_configurations = result.split()
 
@@ -587,7 +636,7 @@ def validate_page():
     Determine if the Packages page should be skipped.
     """
 
-    if model.layout.standard_remove_file_name:
+    if model.layout.standard_remove_file_name or is_arch_layout():
         # Show the Packages page.
         # logger.log_value('Show the Packages page?', 'Yes')
         displayer.reset_buttons(
