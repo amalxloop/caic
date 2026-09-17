@@ -7,5 +7,6 @@ Terminal=false
 Type=Application
 Icon=caic
 StartupNotify=true
-Categories=Utility;Application;System;
+Categories=Utility;
+Keywords=ISO;Arch;Linux;Live;Custom;Remaster;
 StartupWMClass=caic_wizard.py

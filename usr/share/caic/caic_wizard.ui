@@ -9,7 +9,7 @@
 -->
 <!--
 
-  This file is part  of CAIC - Custom Ubuntu ISO Creator.
+  This file is part of CAIC - Custom Arch ISO Creator.
 
   Cubic is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,11 +35,11 @@
     <property name="transient-for">window</property>
     <property name="program-name">CAIC</property>
     <!-- Major Revisions © 2015, 2020, 2024 PJ Singh-->
-    <property name="copyright" translatable="yes">©2015-present PJ Singh. All rights reserved.</property>
+    <property name="copyright" translatable="yes">©2015-present PJ Singh (Cubic). Fork ©2026 CAIC contributors.</property>
     <property name="comments" translatable="yes">Custom Arch ISO Creator</property>
-    <property name="website">https://github.com/PJ-Singh-001/Cubic</property>
+    <property name="website">https://github.com/amalxloop/caic</property>
     <property name="website-label" translatable="yes">CAIC Website</property>
-    <property name="authors">PJ Singh</property>
+    <property name="authors">PJ Singh, CAIC contributors</property>
     <property name="logo-icon-name">caic</property>
     <property name="license-type">gpl-3-0</property>
     <signal name="delete-event" handler="on_close_about_dialog" swapped="no"/>

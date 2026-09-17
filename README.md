@@ -53,7 +53,7 @@ usr/share/caic/
 usr/share/applications/caic.desktop
 usr/share/bash-completion/completions/caic
 usr/share/icons/hicolor/.../apps/caic.*
-usr/share/man/man1/caic.1
+usr/share/man/man1/{caic,build-iso}.1
 usr/share/polkit-1/actions/caic.policy
 ```
 

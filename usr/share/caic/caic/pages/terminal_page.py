@@ -1166,7 +1166,7 @@ def update_release_descriptions():
 
     logger.log_label('Update the release descriptions')
 
-    description = f'{model.custom.iso_volume_id} (Cubic {model.project.modify_date})'
+    description = f'{model.custom.iso_volume_id} (CAIC {model.project.modify_date})'
 
     relative_file_path = os.path.join('etc', 'lsb-release')
     search_text = r'DISTRIB_DESCRIPTION.*'

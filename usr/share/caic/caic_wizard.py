@@ -52,6 +52,7 @@ from gi.repository import Gtk
 
 from caic.constants import CUBIC_COPYRIGHT
 from caic.constants import CUBIC_WEBSITE, CUBIC_URLS
+from caic.constants import BLANK_VERSION_0000, CAIC_VERSION
 from caic import navigator
 from caic.utilities import constructor
 from caic.utilities import logger
@@ -76,6 +77,24 @@ parser.add_argument("-l", "--log", action="store_true", help="output a formatted
 parser.add_argument("-v", "--verbose", action="store_true", help="output a formatted log to the console")
 parser.add_argument("-V", "--version", action="store_true", help="print version information and exit")
 
+
+def get_application_version():
+    """
+    Return the (package_version, display_version) of the running CAIC.
+
+    When CAIC is installed as a package, the version is read from the
+    package database. When running from a source checkout the package
+    version is unavailable, so the CAIC_VERSION constant is used instead.
+    """
+
+    package_version = constructor.get_package_version('caic')
+    display_version = constructor.get_display_version(package_version)
+    if display_version == BLANK_VERSION_0000:
+        package_version = CAIC_VERSION
+        display_version = CAIC_VERSION
+    return package_version, display_version
+
+
 if os.getuid() == 0:
     print('Error: CAIC may not be run using sudo or as root because it is a graphical user interface application.')
     print()
@@ -87,8 +106,7 @@ argcomplete.autocomplete(parser)
 arguments = parser.parse_args()
 
 if arguments.version:
-    version = constructor.get_package_version('caic')
-    display_version = constructor.get_display_version(version)
+    version, display_version = get_application_version()
     urls = constructor.decode_object(CUBIC_URLS)
     website = urls[CUBIC_WEBSITE]
     print(f'CAIC version... {display_version}')
@@ -102,8 +120,7 @@ if arguments.version:
 
 try:
 
-    version = constructor.get_package_version('caic')
-    display_version = constructor.get_display_version(version)
+    version, display_version = get_application_version()
     urls = constructor.decode_object(CUBIC_URLS)
     website = urls[CUBIC_WEBSITE]
 
@@ -129,8 +146,8 @@ try:
     # Get the user's home directory.
     model.application.user_home = os.path.expanduser('~')
 
-    # Get the running Cubic version.
-    model.application.cubic_version = constructor.get_package_version('caic')
+    # Get the running CAIC version.
+    model.application.cubic_version = get_application_version()[0]
     ### TODO: FOR TESTING ONLY
     # model.application.cubic_version = '2026.08.108-release~202608201745~ubuntu26.04'
 

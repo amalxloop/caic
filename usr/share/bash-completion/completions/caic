@@ -1,8 +1,8 @@
-# cubic(1) completion
+# caic(1) completion
 
 ########################################################################
 #                                                                      #
-# cubic                                                                #
+# caic                                                                 #
 #                                                                      #
 # Copyright (C) 2022 PJ Singh <psingh.cubic@gmail.com>                 #
 #                                                                      #
@@ -10,7 +10,7 @@
 
 ########################################################################
 #                                                                      #
-# This file is part of Cubic - Custom Ubuntu ISO Creator.              #
+# This file is part of CAIC - Custom Arch ISO Creator.                 #
 #                                                                      #
 # Licensed under the Apache License, Version 2.0 (the "License");      #
 # you may not use this file except in compliance with the License.     #

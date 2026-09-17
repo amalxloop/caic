@@ -533,7 +533,7 @@ def validate_page():
         # Temporarily disable verbose mode, if it is on.
         verbose, logger.verbose = logger.verbose, False
         # Write the application title to the log file (only).
-        logger.log_title('Cubic - Custom Ubuntu ISO Creator')
+        logger.log_title('CAIC - Custom Arch ISO Creator')
         # Reset verbose mode to previous value.
         logger.verbose = verbose
         logger.log_value('The log file is', logger.log_file)
@@ -616,7 +616,7 @@ def validate_page():
             is_next_sensitive=True,
             is_next_visible=True)
 
-        message = 'A new Cubic project will be created using this directory.'
+        message = 'A new CAIC project will be created using this directory.'
         displayer.update_label('start_page__project_directory_message', message, False)
         displayer.set_entry_error('start_page__project_directory_entry', OK)
 
@@ -654,7 +654,7 @@ def validate_page():
             is_next_sensitive=True,
             is_next_visible=True)
 
-        message = 'This directory contains a legacy Cubic project.'
+        message = 'This directory contains a legacy CAIC project.'
         displayer.update_label('start_page__project_directory_message', message, False)
         displayer.set_entry_error('start_page__project_directory_entry', OK)
 
@@ -683,7 +683,7 @@ def validate_page():
         is_next_sensitive=True,
         is_next_visible=True)
 
-    message = 'This directory contains an existing Cubic project.'
+    message = 'This directory contains an existing CAIC project.'
     displayer.update_label('start_page__project_directory_message', message, False)
     displayer.set_entry_error('start_page__project_directory_entry', OK)
 

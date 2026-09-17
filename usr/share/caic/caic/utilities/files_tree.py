@@ -1099,7 +1099,7 @@ class FilesTree:
 
             # Reset is_edited since the file has been saved.
 
-            logger.log_value('File changed by', 'Cubic')
+            logger.log_value('File changed by', 'CAIC')
             logger.log_value('Undo buffer', 'Do not reset')
             self.file_map[file_path][IS_EDITED] = False
 

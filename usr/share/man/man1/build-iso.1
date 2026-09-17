@@ -1,0 +1,93 @@
+.\" Manual page for build-iso.
+.\" Copyright (C) 2026 CAIC contributors
+
+.TH build-iso 1 "September 17, 2026" "" "CAIC"
+
+.SH NAME
+\fBbuild-iso\fR - headless ISO builder for CAIC projects
+
+.SH SYNOPSIS
+\fBbuild-iso\fR [\fIoptions\fR] \fIproject_directory\fR
+
+.SH DESCRIPTION
+\fBbuild-iso\fR rebuilds the ISO image for an existing CAIC project without
+starting the graphical wizard. It reads the project configuration
+(\fIcaic.conf\fR), copies the kernel and initramfs files from the custom root
+into the disk layout, builds the squashfs image, refreshes the checksum files,
+recreates the attribute alias links, and rebuilds the image using the
+xorriso template stored in the project.
+.PP
+The program is written using only the Python standard library, so it can be
+run over SSH or from continuous integration. Writing to the root-owned custom
+disk uses \fBpkexec\fR(1) when the command is not run as root.
+.PP
+With \fB--mkarchiso\fR the tool instead generates an archiso profile from the
+project and delegates the build to \fBmkarchiso\fR from the archiso package.
+
+.SH OPTIONS
+
+\fB-h, --help\fR
+.RS
+show the help message and exit
+.RE
+
+\fB--mkarchiso\fR
+.RS
+delegate the ISO build to the \fBmkarchiso\fR tool from the archiso package,
+instead of using the stored xorriso template.
+.RE
+
+\fB--work-directory\fR \fIDIR\fR
+.RS
+the work directory for the mkarchiso build (default:
+\fI<project>/custom-temp/mkarchiso\fR).
+.RE
+
+\fB--output-directory\fR \fIDIR\fR
+.RS
+the output directory for the ISO (default: the project ISO directory).
+.RE
+
+\fB--skip-kernels\fR
+.RS
+do not copy the kernel boot files into the custom disk.
+.RE
+
+\fB--skip-squashfs\fR
+.RS
+do not compress the custom root file system; reuse the existing squashfs.
+.RE
+
+\fB--skip-checksums\fR
+.RS
+do not update the checksum files.
+.RE
+
+\fB--dry-run\fR
+.RS
+print the commands without running them.
+.RE
+
+.SH EXAMPLES
+
+Rebuild a project with the stored xorriso template:
+
+.nf
+.RS
+build-iso ~/caic/MyProject
+.RE
+.fi
+
+Build the same project through archiso:
+
+.nf
+.RS
+build-iso --mkarchiso ~/caic/MyProject
+.RE
+.fi
+
+.SH SEE ALSO
+\fBcaic\fR(1), \fBxorriso\fR(1), \fBmkarchiso\fR(1), \fBmksquashfs\fR(1)
+
+.SH BUGS
+Report bugs to <https://github.com/amalxloop/caic/issues>.

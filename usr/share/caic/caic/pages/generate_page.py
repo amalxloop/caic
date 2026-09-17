@@ -1298,7 +1298,7 @@ def _update_disk_name():
     # • #define DISKNOTE  Generated using Cubic version 2026.06.105 on 2026-06-30 19:32 based on ubuntu-26.04-desktop-amd64.iso
     display_version = constructor.get_display_version(model.application.cubic_version)
     # Use the modify date from the model.
-    disk_note_line = f'#define DISKNOTE  Generated using Cubic version {display_version} on {model.project.modify_date} based on {model.original.iso_file_name}'
+    disk_note_line = f'#define DISKNOTE  Generated using CAIC version {display_version} on {model.project.modify_date} based on {model.original.iso_file_name}'
 
     # Get the architecture of the host, since the architecture of the
     # iso being customized must match the architecture of the host.
