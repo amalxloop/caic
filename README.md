@@ -1,5 +1,7 @@
 # CAIC - Custom Arch ISO Creator
 
+Latest tag: [v0.1.0](https://github.com/amalxloop/caic/tree/v0.1.0)
+
 **CAIC** (**C**ustom **A**rch **I**SO **C**reator) is a GUI wizard to create a
 customized Live ISO image for **Arch Linux and Arch-based distributions**.
 
@@ -18,8 +20,9 @@ behaviour has been ported and guarded (extract, packages, options, console,
 generate/finish), the Debian packaging has been removed in favour of an Arch
 `PKGBUILD`, and a headless `build-iso.py` CLI rebuilds the ISO or delegates to
 `mkarchiso`. The automated test suites (generate page, packages page, boot
-tab, and the `build-iso` harness) pass. See [PORTING.md](PORTING.md) for the
-component-by-component plan.
+tab, and the `build-iso` harness) pass, and the GTK wizard has been
+smoke-tested to launch against the Arch runtime dependencies. See
+[PORTING.md](PORTING.md) for the component-by-component plan.
 
 The one thing that cannot be verified in an unprivileged/headless environment
 is a **physical end-to-end build** (mounting the source ISO, writing the
@@ -52,6 +55,27 @@ usr/share/bash-completion/completions/caic
 usr/share/icons/hicolor/.../apps/caic.*
 usr/share/man/man1/caic.1
 usr/share/polkit-1/actions/caic.policy
+```
+
+## Installation
+
+Build and install the package on Arch (this also pulls in every runtime
+dependency listed in the `PKGBUILD`):
+
+```
+git clone https://github.com/amalxloop/caic.git
+cd caic
+makepkg -si
+```
+
+To run straight from a checkout instead, install the dependencies first:
+
+```
+sudo pacman -S --needed gtk3 python-gobject gtksourceview4 vte3 \
+    python-argcomplete python-pyicu python-magic python-packaging \
+    python-pexpect python-psutil python-pydbus python-pyinotify python-yaml \
+    libisoburn squashfs-tools syslinux mkinitcpio pacman polkit rsync \
+    systemd util-linux findutils sed
 ```
 
 ## Usage
