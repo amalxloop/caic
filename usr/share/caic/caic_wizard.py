@@ -55,6 +55,7 @@ from caic.constants import CUBIC_WEBSITE, CUBIC_URLS
 from caic.constants import BLANK_VERSION_0000, CAIC_VERSION
 from caic import navigator
 from caic.utilities import constructor
+from caic.utilities import dependencies
 from caic.utilities import logger
 from caic.utilities import model
 
@@ -93,6 +94,36 @@ def get_application_version():
         package_version = CAIC_VERSION
         display_version = CAIC_VERSION
     return package_version, display_version
+
+
+def show_missing_dependencies(window, missing_commands):
+    """
+    Warn the user about required system tools that are not installed.
+
+    CAIC shells out to command line tools such as xorriso and isoinfo.
+    When one is missing it fails silently (for example, selecting an ISO
+    would do nothing), so report every missing tool and the package that
+    provides it.
+    """
+
+    lines = [f'• {command}  (package: {package})' for command, package in missing_commands]
+    packages = dependencies.get_missing_packages(missing_commands)
+
+    dialog = Gtk.MessageDialog(
+        parent=window,
+        modal=True,
+        destroy_with_parent=True,
+        message_type=Gtk.MessageType.WARNING,
+        buttons=Gtk.ButtonsType.CLOSE,
+        text='Some required system tools are not installed.')
+    dialog.format_secondary_text(
+        'CAIC uses the following command line tools. Install the packages\n'
+        'that provide them, or some features will not work:\n\n'
+        + '\n'.join(lines)
+        + '\n\nOn Arch Linux, for example:\n    sudo pacman -S --needed '
+        + ' '.join(packages))
+    dialog.run()
+    dialog.destroy()
 
 
 if os.getuid() == 0:
@@ -292,6 +323,12 @@ try:
     # Show the window.
     window = model.builder.get_object('window')
     window.show()
+
+    # Warn about required system tools that are not installed.
+    missing_commands = dependencies.get_missing_commands()
+    if missing_commands:
+        logger.log_value('Missing required commands', missing_commands)
+        show_missing_dependencies(window, missing_commands)
 
     # Open the application.
     navigator.handle_navigation('open')

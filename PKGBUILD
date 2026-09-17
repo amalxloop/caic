@@ -41,7 +41,9 @@ depends=(
     'python-pyinotify'
     'python-yaml'
     # System tooling
+    'cdrtools'        # isoinfo (ISO volume id when opening an ISO)
     'coreutils'       # dd, du, rm, wc, sha256sum
+    'file'            # file (initrd / media type detection)
     'findutils'       # find (move-path, merge-directory)
     'libisoburn'      # xorriso (generate page, ISO report, build-iso.py)
     'mkinitcpio'      # lsinitcpio (initrd inspection)
@@ -53,6 +55,7 @@ depends=(
     'syslinux'        # BIOS boot bits (isolinux.*, isohdpfx.bin)
     'systemd'         # systemd-nspawn, machinectl (console, pacman-in-root, mount helpers)
     'util-linux'      # mount, umount (mount-iso, unmount-iso)
+    'xdg-utils'       # xdg-open (help / website / donate links)
 )
 optdepends=(
     'archiso: build the ISO with `build-iso.py --mkarchiso`'
