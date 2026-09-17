@@ -147,15 +147,19 @@ def create_link(directory_path, file_name, link_name, dry_run=False):
     if not file_name or not link_name:
         return
     link_path = os.path.join(directory_path, link_name)
-    if file_name != link_name and os.path.isfile(link_path) and not os.path.islink(link_path):
-        os.remove(link_path)
     try:
         if dry_run:
             print(f'[dry-run] ln -sfn "{file_name}" "{link_path}"')
         else:
-            if os.path.islink(link_path) or (file_name != link_name and os.path.exists(link_path)):
+            # Only remove existing files or links; never directories.
+            # This mirrors commands/file_utilities.create_link().
+            if os.path.islink(link_path) or (file_name != link_name and os.path.isfile(link_path)):
                 os.remove(link_path)
             os.symlink(file_name, link_path)
+    except FileExistsError:
+        # The link target already exists (usually a real directory on
+        # the disk, such as arch/boot). Skip it quietly, as the GUI does.
+        pass
     except OSError as exception:
         print(f'Error. Unable to create link {link_path}. The exception is {exception}', file=sys.stderr)
 
@@ -651,7 +655,7 @@ def build_with_mkarchiso(project, options):
     """Delegate the ISO build to mkarchiso (the archiso tool)."""
 
     mkarchiso = shutil.which('mkarchiso')
-    if mkarchiso is None and not project.dry_run:
+    if mkarchiso is None and not (project.dry_run or options.dry_run):
         print('Error. The mkarchiso command is not installed.'
               '\nInstall the archiso package from the Arch Linux extra repository and try again.', file=sys.stderr)
         return 1
@@ -666,7 +670,7 @@ def build_with_mkarchiso(project, options):
 
     command = (f'{mkarchiso or "mkarchiso"} -v -w "{work_directory}" -o "{output_directory}" "{profile_directory}"')
     print(f'Running {command}')
-    if project.dry_run:
+    if project.dry_run or options.dry_run:
         print(f'[dry-run] {command}')
         return 0
     return run(command)

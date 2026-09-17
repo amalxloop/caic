@@ -308,9 +308,16 @@ disk/installer metadata, and `.disk` attributes.
 5. When mkarchiso is not installed, exits with a clear instruction
    to install the `archiso` package from the extra repository.
 
-**Testing:** `compileall` + dry-run against a synthetic project
-verifies all paths, config parsing, template decode, checksums
-generation, and xorriso command construction.
+**Testing:** `test_build_iso.py` provides 38 automated checks: config
+parsing and last-valid attribute resolution, template encode/decode,
+xorriso command construction, checksum generation (sha256sums.txt for
+Arch, md5sum.txt for Ubuntu) with self/foot-exclusion, kernel copy,
+attribute alias links, archiso profile generation (profiledef.sh,
+pacman.conf, package list derived from the pacman local db), and
+`--dry-run` operation without mkarchiso/xorriso/root installed.
+`compileall` also passes. A full physical build (mounting the source
+ISO, pkexec/mksquashfs into the root-owned custom disk, final xorriso
+image) requires a real Arch box with the toolchain installed.
 
 ## Dependency map (debian/control → PKGBUILD)
 
