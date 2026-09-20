@@ -3,5 +3,7 @@ __pycache__/
 *.pkg.tar.*
 src/
 pkg/
+# Boot images extracted by generate_iso_template test runs.
+partition-*.img
 *~
 *.swp

@@ -201,7 +201,7 @@ def get_iso_volume_id(iso_file_path):
     # iso_volume_id = 'Unknown ISO image volume id'
     iso_volume_id = ''
     if not exit_status and not signal_status:
-        iso_volume_id = re.sub(r'.*Volume id:\s+(.*[^\n]).*Volume\s+set\s+id.*', r'\1', result, 0, re.DOTALL)[:32]
+        iso_volume_id = re.sub(r'.*Volume id:\s+(.*[^\n]).*Volume\s+set\s+id.*', r'\1', result, 0, re.DOTALL)[:32].strip()
     logger.log_value('ISO image volume id', iso_volume_id)
 
     return iso_volume_id
